@@ -4,26 +4,103 @@ import dotenv from "dotenv";
 
 const app = express();
 dotenv.config();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 const masterKey = "4VGP2DN-6EWM4SJ-N6FGRHV-Z3PR3TT";
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
-//1. GET a random joke
 
-//2. GET a specific joke
+//Get a random joke
+app.get("/random", (req, res) => {
+  const randomIndex = Math.floor(Math.random() * jokes.length);
+  res.json(jokes[randomIndex]);
+});
 
-//3. GET a jokes by filtering on the joke type
+//Get a specific joke
+app.get("/jokes/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  const foundJoke = jokes.find((joke) => joke.id === id);
+  res.json(foundJoke);
+});
 
-//4. POST a new joke
+//Filter jokes by type
+app.get("/filter", (req, res) => {
+  const type = req.query.type;
+  const filteredActivities = jokes.filter((joke) => joke.jokeType === type);
+  res.json(filteredActivities);
+});
 
-//5. PUT a joke
+// Post a new joke
+app.post("/jokes", (req, res) => {
+  const newJoke = {
+    id: jokes.length + 1,
+    jokeText: req.body.text,
+    jokeType: req.body.type,
+  };
+  jokes.push(newJoke);
+  console.log(jokes.slice(-1));
+  res.json(newJoke);
+});
 
-//6. PATCH a joke
+//Put a joke
+app.put("/jokes/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  const replacementJoke = {
+    id: id,
+    jokeText: req.body.text,
+    jokeType: req.body.type,
+  };
 
-//7. DELETE Specific joke
+  const searchIndex = jokes.findIndex((joke) => joke.id === id);
 
-//8. DELETE All jokes
+  jokes[searchIndex] = replacementJoke;
+  // console.log(jokes);
+  res.json(replacementJoke);
+});
+
+//Patch a joke
+app.patch("/jokes/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  const existingJoke = jokes.find((joke) => joke.id === id);
+  const replacementJoke = {
+    id: id,
+    jokeText: req.body.text || existingJoke.jokeText,
+    jokeType: req.body.type || existingJoke.jokeType,
+  };
+  const searchIndex = jokes.findIndex((joke) => joke.id === id);
+  jokes[searchIndex] = replacementJoke;
+  console.log(jokes[searchIndex]);
+  res.json(replacementJoke);
+});
+
+//DELETE Specific joke
+//Optional Edge Case Mangement: Can you think of a situation where we might have an issue deleting
+//a specific joke out of the array? Can you think of a solution?
+app.delete("/jokes/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  const searchIndex = jokes.findIndex((joke) => joke.id === id);
+  if (searchIndex > -1) {
+    jokes.splice(searchIndex, 1);
+    res.sendStatus(200);
+  } else {
+    res
+      .status(404)
+      .json({ error: `Joke with id: ${id} not found. No jokes were deleted.` });
+  }
+});
+
+//DELETE All jokes
+app.delete("/all", (req, res) => {
+  const userKey = req.query.key;
+  if (userKey === masterKey) {
+    jokes = [];
+    res.sendStatus(200);
+  } else {
+    res
+      .status(404)
+      .json({ error: `You are not authorised to perform this action.` });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Successfully started server on PORT ${PORT}.`);
